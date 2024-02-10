@@ -80,12 +80,12 @@ func (s ParcelStore) SetStatus(number int, status string) error {
 	}
 
 	switch status {
-	case "sent":
-		if currentStatus != "registered" {
+	case ParcelStatusSent:
+		if currentStatus != ParcelStatusRegistered {
 			return errors.New("можно менять статус только с registered на sent")
 		}
-	case "delivered":
-		if currentStatus != "sent" {
+	case ParcelStatusDelivered:
+		if currentStatus != ParcelStatusSent {
 			return errors.New("можно менять статус только с sent на delivered")
 		}
 	default:
@@ -109,7 +109,7 @@ func (s ParcelStore) SetAddress(number int, address string) error {
 		return err
 	}
 
-	if currentStatus != "registered" {
+	if currentStatus != ParcelStatusRegistered {
 		return errors.New("можно менят адрес только у посылки со статусом registered")
 	}
 
@@ -124,7 +124,18 @@ func (s ParcelStore) SetAddress(number int, address string) error {
 func (s ParcelStore) Delete(number int) error {
 	// реализуйте удаление строки из таблицы parcel
 	// удалять строку можно только если значение статуса registered
-	_, err := s.db.Exec("DELETE FROM parcel WHERE number = ?", number)
+	var currentStatus string
+
+	err := s.db.QueryRow("SELECT status FROM parcel WHERE number = ?", number).Scan(&currentStatus)
+	if err != nil {
+		return err
+	}
+
+	if currentStatus != ParcelStatusRegistered {
+		return errors.New("можно удалять только посылки со статусом registered")
+	}
+
+	_, err = s.db.Exec("DELETE FROM parcel WHERE number = ?", number)
 	if err != nil {
 		return err
 	}
